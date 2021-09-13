@@ -8,11 +8,8 @@ edition = "2018"
 name = "blau"
 crate-type = ["cdylib"]
 
-[dependencies.cpython]
-version = "0.5"
-features = ["extension-module"]
-
 [dependencies]
+cpython = { version = "0.6", features = ["extension-module"] }
 rand = "0.8"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
