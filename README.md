@@ -3,7 +3,6 @@
 This repository contains:
  - a Rust implementation of the core Blau game logic
  - a Python binding to the Rust code
- - a web UI for playing Blau online
  - a self-play script for testing Blau agents
 
 ## Usage
@@ -14,9 +13,16 @@ Test the Rust code:
 cargo test
 ```
 
-Install Python dependencies:
+Build and install the Python package:
 
 ```
-pip install --user fastapi[all] pandas matplotlib
+python setup.py develop
+```
+
+Run the self-play script (requires extra deps):
+
+```
+pip install --user pandas matplotlib scipy
+python3 scripts/self_play.py --plot
 ```
 
