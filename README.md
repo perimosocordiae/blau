@@ -26,3 +26,8 @@ pip install --user pandas matplotlib scipy
 python3 scripts/self_play.py --plot
 ```
 
+### Build wheels
+
+```
+sudo docker run --rm -v `pwd`:/io quay.io/pypa/manylinux2010_x86_64 /io/build-wheels.sh
+```

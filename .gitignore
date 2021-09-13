@@ -1,6 +1,7 @@
 /build
 /dist
 /target
+/wheelhouse
 __pycache__
 .vscode
 Cargo.lock
