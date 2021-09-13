@@ -21,7 +21,7 @@ def main():
 
     levels = [args.test_level] + [args.base_level] * (args.num_players - 1)
     agents = [BlauAgent(level) for level in levels]
-    agent_names = ['Test', 'B', 'C', 'D'][: args.num_players]
+    agent_names = ['Test', 'B', 'C', 'D'][:args.num_players]
 
     scores = play_games(agents, agent_names, args.num_games)
     print('Per game scoring')
@@ -40,19 +40,26 @@ def main():
     if args.plot:
         expected = args.num_games // args.num_players
         n = args.num_players + 1
-        hist = pd.DataFrame({
-            name: np.bincount(ranks[name], minlength=n)[1:] - expected
-            for name in agent_names
-        }, index=np.arange(1, n))
+        hist = pd.DataFrame(
+            {
+                name: np.bincount(ranks[name], minlength=n)[1:] - expected
+                for name in agent_names
+            },
+            index=np.arange(1, n))
         axes[1].axhline(expected, c='k', ls='--')
-        hist.plot(kind='bar', ax=axes[1], legend=True, xlabel='Rank',
-                  ylabel='Frequency', bottom=expected)
+        hist.plot(kind='bar',
+                  ax=axes[1],
+                  legend=True,
+                  xlabel='Rank',
+                  ylabel='Frequency',
+                  bottom=expected)
 
     # compute p-values for test outperforming the others
     p_values = np.array([
-        st.wilcoxon(scores.Test - scores[name], zero_method='pratt',
-                    alternative='greater', mode='approx').pvalue
-        for name in agent_names[1:]
+        st.wilcoxon(scores.Test - scores[name],
+                    zero_method='pratt',
+                    alternative='greater',
+                    mode='approx').pvalue for name in agent_names[1:]
     ])
     print('\np-Values:', p_values)
     if (p_values < 0.05).all():
@@ -67,7 +74,7 @@ def main():
     elos = np.zeros((len(scores) + 1, args.num_players))
     elos[0] = 1500 + np.arange(args.num_players)
     for i, s in enumerate(scores.values):
-        elos[i + 1] = update_elos(elos[i], s.argsort(), k)
+        elos[i + 1] = elos[i] + update_elos(elos[i], s.argsort(), k)
         k = max(0.99 * k, 1)
     print('\nFinal Elo ratings:')
     for elo, name in sorted(zip(elos[-1], agent_names), reverse=True):
@@ -106,23 +113,22 @@ def play_games(agents: List[BlauAgent], agent_names: List[str],
 
 def _elo_change(rating_loser: float, rating_winner: float, k: float):
     gap = rating_winner - rating_loser
-    return k / (1 + 10 ** (gap / 400))
+    return k / (1 + 10**(gap / 400))
 
 
-def update_elos(
-    current_elos: Sequence[float], ranking: Sequence[int], elo_k: float
-) -> Sequence[float]:
+def update_elos(current_elos: Sequence[float], ranking: Sequence[int],
+                elo_k: float) -> Sequence[float]:
     num_players = len(current_elos)
     elo_change = [0.0] * num_players
     for j in range(1, num_players):
         idx_loser = ranking[j - 1]
         idx_winner = ranking[j]
-        delta = _elo_change(
-            current_elos[idx_loser], current_elos[idx_winner], elo_k
-        )
+        delta = _elo_change(current_elos[idx_loser], current_elos[idx_winner],
+                            elo_k)
         elo_change[idx_loser] -= delta
         elo_change[idx_winner] += delta
     return elo_change
+
 
 if __name__ == "__main__":
     main()

@@ -1,4 +1,4 @@
-from setuptools import setup, Distribution
+from setuptools import setup
 from setuptools_rust import RustExtension, Binding
 
 setup(
@@ -8,7 +8,7 @@ setup(
     packages=['blau'],
     zip_safe=False,
     rust_extensions=[
-        RustExtension('blau', 'Cargo.toml', debug=False, binding=Binding.NoBinding),
+        RustExtension('blau.blau', debug=False, binding=Binding.RustCPython),
     ],
+    package_data=dict(blau=['blau.pyi']),
 )
-

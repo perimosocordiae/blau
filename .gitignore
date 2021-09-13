@@ -1,3 +1,7 @@
+/build
+/dist
 /target
-Cargo.lock
 __pycache__
+.vscode
+Cargo.lock
+*.egg-info
