@@ -16,7 +16,7 @@ cargo test
 Build and install the Python package:
 
 ```
-python setup.py develop
+pip install --user -e .
 ```
 
 Run the self-play script (requires extra deps):
