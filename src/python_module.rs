@@ -1,5 +1,5 @@
 #![allow(clippy::all)]
-use crate::agent::{Agent, GreedyAgent, RoundPlanningAgent};
+use crate::agent::{create_agent, Agent};
 use crate::game_state;
 use crate::player_move;
 use cpython::exc::ValueError;
@@ -75,12 +75,7 @@ py_class!(class BlauMove |py| {
 py_class!(class BlauAgent |py| {
     data ga: Box<dyn Agent + Send>;
     def __new__(_cls, difficulty: usize) -> PyResult<BlauAgent> {
-        let wrapped: Box<dyn Agent + Send> = match difficulty {
-            0 => Box::new(GreedyAgent::new()),
-            1 => Box::new(RoundPlanningAgent::new(false)),
-            _ => Box::new(RoundPlanningAgent::new(true)),
-        };
-        BlauAgent::create_instance(py, wrapped)
+        BlauAgent::create_instance(py, create_agent(difficulty))
     }
     def choose_action(&self, game: BlauState) -> PyResult<BlauMove> {
         let m = self.ga(py).choose_action(&game.gs(py).borrow());

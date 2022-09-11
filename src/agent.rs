@@ -3,6 +3,14 @@ use crate::player_move::Move;
 use crate::player_state::{played_column, PlayerState};
 use rand::seq::SliceRandom;
 
+pub fn create_agent(difficulty: usize) -> Box<dyn Agent + Send> {
+    match difficulty {
+        0 => Box::new(GreedyAgent::new()),
+        1 => Box::new(RoundPlanningAgent::new(false)),
+        _ => Box::new(RoundPlanningAgent::new(true)),
+    }
+}
+
 pub trait Agent {
     fn choose_action(&self, game: &GameState) -> Move;
 }
