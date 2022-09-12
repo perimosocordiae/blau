@@ -209,9 +209,9 @@ impl GameState {
         result
     }
 
-    pub fn to_json(&self) -> String {
+    pub fn to_json(&self) -> serde_json::Value {
         // Only include player-facing information (i.e., no tile bag).
-        let val = json!({
+        json!({
             "factories": self.factories,
             "center": self.center,
             "curr_player_idx": self.curr_player_idx,
@@ -220,8 +220,7 @@ impl GameState {
             "tiles_in_bag": self.tile_bag.len(),
             "tiles_in_lid": self.box_lid.len(),
             "round_number": self.round_number,
-        });
-        val.to_string()
+        })
     }
 }
 
