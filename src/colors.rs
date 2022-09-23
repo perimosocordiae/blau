@@ -20,9 +20,9 @@ impl Color {
 
 #[test]
 fn checks_movable() {
-    assert_eq!(Color::Blue.is_movable(), true);
-    assert_eq!(Color::Start.is_movable(), false);
-    assert_eq!(Color::Blank.is_movable(), false);
+    assert!(Color::Blue.is_movable());
+    assert!(!Color::Start.is_movable());
+    assert!(!Color::Blank.is_movable());
 }
 
 impl TryFrom<usize> for Color {

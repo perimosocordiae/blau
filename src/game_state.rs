@@ -162,7 +162,7 @@ impl GameState {
         }
         // Prep the tile bag for the next round, if necessary.
         if self.tile_bag.len() < 4 * self.factories.len() {
-            self.tile_bag.extend(self.box_lid.drain(..));
+            self.tile_bag.append(&mut self.box_lid);
             // TODO: store the RNG from initialization and reuse it here.
             let mut rng = rand::thread_rng();
             self.tile_bag.shuffle(&mut rng);
@@ -229,10 +229,10 @@ fn validates_turn_taking() {
     // Mock the RNG for reproducibility.
     let mut rng = rand::rngs::mock::StepRng::new(0, 1);
     let mut game = GameState::new(&["foo", "bar"], &mut rng);
-    assert_eq!(game.is_round_over(), false);
-    assert_eq!(game.is_finished(), false);
+    assert!(!game.is_round_over());
+    assert!(!game.is_finished());
     game.start_round();
-    assert_eq!(game.is_round_over(), false);
+    assert!(!game.is_round_over());
     assert_eq!(game.current_player().display_name, "foo");
     // Take the starting tile from the middle.
     assert_eq!(

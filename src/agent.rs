@@ -49,7 +49,7 @@ impl Agent for GreedyAgent {
         *game
             .valid_moves()
             .iter()
-            .max_by_key(|m| self.score_move(&game, m))
+            .max_by_key(|m| self.score_move(game, m))
             .unwrap_or_else(|| {
                 panic!("No moves to choose from! GameState: {:?}", game)
             })
@@ -92,6 +92,12 @@ impl GreedyAgent {
             .expect("Cannot add tiles");
         let score = player_score(&mut player);
         (score, bias)
+    }
+}
+
+impl Default for GreedyAgent {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -138,7 +144,7 @@ impl RoundPlanningAgent {
             let m = if self.recurse && game.curr_player_idx == idx {
                 self.choose_action(game)
             } else {
-                self.greedy.choose_action(&game)
+                self.greedy.choose_action(game)
             };
             if game.take_turn(&m).unwrap() {
                 return player_score(&mut game.players[idx]);
