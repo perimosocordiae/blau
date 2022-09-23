@@ -2,12 +2,16 @@ use crate::colors::Color;
 use crate::player_move::Move;
 use crate::player_state::PlayerState;
 use rand::seq::SliceRandom;
-use serde_json::json;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GameState {
+    #[serde(skip_deserializing)]
+    #[serde(serialize_with = "as_vec_len")]
     tile_bag: Vec<Color>,
+    #[serde(skip_deserializing)]
+    #[serde(serialize_with = "as_vec_len")]
     box_lid: Vec<Color>,
     factories: Vec<Vec<Color>>,
     center: HashMap<Color, usize>,
@@ -15,6 +19,13 @@ pub struct GameState {
     start_player_idx: usize,
     pub curr_player_idx: usize,
     round_number: usize,
+}
+
+fn as_vec_len<S>(vec: &Vec<Color>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    serializer.serialize_i64(vec.len() as i64)
 }
 
 const ALL_COLORS: [Color; 5] = [
@@ -207,20 +218,6 @@ impl GameState {
             }
         }
         result
-    }
-
-    pub fn to_json(&self) -> serde_json::Value {
-        // Only include player-facing information (i.e., no tile bag).
-        json!({
-            "factories": self.factories,
-            "center": self.center,
-            "curr_player_idx": self.curr_player_idx,
-            "start_player_idx": self.start_player_idx,
-            "players": self.players,
-            "tiles_in_bag": self.tile_bag.len(),
-            "tiles_in_lid": self.box_lid.len(),
-            "round_number": self.round_number,
-        })
     }
 }
 

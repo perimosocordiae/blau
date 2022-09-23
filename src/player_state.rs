@@ -1,9 +1,9 @@
 use crate::colors::Color;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 type PlayGrid = [[bool; 5]; 5];
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlayerState {
     pub display_name: String,
     played_tiles: PlayGrid,

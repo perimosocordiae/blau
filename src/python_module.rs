@@ -33,7 +33,8 @@ py_class!(class BlauState |py| {
         Ok(format!("{:?}", self.gs(py).borrow()))
     }
     def to_json(&self) -> PyResult<String> {
-        Ok(self.gs(py).borrow().to_json().to_string())
+        serde_json::to_string(self.gs(py))
+                .map_err(|e| PyErr::new::<ValueError, _>(py, e.to_string()))
     }
     @property def curr_player_idx(&self) -> PyResult<usize> {
         Ok(self.gs(py).borrow().curr_player_idx)

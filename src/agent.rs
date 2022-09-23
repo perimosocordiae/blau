@@ -5,7 +5,7 @@ use rand::seq::SliceRandom;
 
 pub fn create_agent(difficulty: usize) -> Box<dyn Agent + Send> {
     match difficulty {
-        0 => Box::new(GreedyAgent::new()),
+        0 => Box::new(GreedyAgent::default()),
         1 => Box::new(RoundPlanningAgent::new(false)),
         _ => Box::new(RoundPlanningAgent::new(true)),
     }
