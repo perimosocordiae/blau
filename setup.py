@@ -3,7 +3,7 @@ from setuptools_rust import RustExtension, Binding
 
 setup(
     name='blau',
-    version='0.1.0',
+    version='0.1.1',
     author='CJ Carey',
     packages=['blau'],
     zip_safe=False,
