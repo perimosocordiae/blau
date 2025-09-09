@@ -11,7 +11,7 @@ py_class!(class BlauState |py| {
     data gs: RefCell<game_state::GameState>;
     def __new__(_cls, names: Vec<String>) -> PyResult<BlauState> {
         let name_refs: Vec<&str> = names.iter().map(String::as_str).collect();
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let wrapped = game_state::GameState::new(&name_refs, &mut rng);
         BlauState::create_instance(py, RefCell::new(wrapped))
     }

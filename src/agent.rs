@@ -1,7 +1,7 @@
 use crate::game_state::GameState;
 use crate::player_move::Move;
 use crate::player_state::{played_column, PlayerState};
-use rand::seq::SliceRandom;
+use rand::seq::IndexedRandom;
 
 pub fn create_agent(difficulty: usize) -> Box<dyn Agent + Send> {
     match difficulty {
@@ -19,7 +19,7 @@ pub struct RandomAgent {}
 impl Agent for RandomAgent {
     fn choose_action(&self, game: &GameState) -> Move {
         let moves = game.valid_moves();
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         if let Some(m) = moves.choose(&mut rng) {
             *m
         } else {
