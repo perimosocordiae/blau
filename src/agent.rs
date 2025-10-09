@@ -1,6 +1,6 @@
 use crate::game_state::GameState;
 use crate::player_move::Move;
-use crate::player_state::{played_column, PlayerState};
+use crate::player_state::{PlayerState, played_column};
 use rand::seq::IndexedRandom;
 
 pub fn create_agent(difficulty: usize) -> Box<dyn Agent + Send> {
@@ -110,6 +110,9 @@ pub struct RoundPlanningAgent {
 impl Agent for RoundPlanningAgent {
     fn choose_action(&self, game: &GameState) -> Move {
         let mut moves = game.valid_moves();
+        if moves.is_empty() {
+            panic!("No moves to choose from! GameState: {:?}", game);
+        }
         moves.sort_by_cached_key(|m| self.greedy.score_move(game, m));
         let start = if moves.len() >= self.num_branches {
             moves.len() - self.num_branches
