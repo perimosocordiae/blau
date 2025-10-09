@@ -239,6 +239,10 @@ impl GameAPI for BlauAPI {
     fn player_scores(&self) -> Vec<i32> {
         self.state.players.iter().map(|p| p.score()).collect()
     }
+
+    fn should_persist(&self) -> bool {
+        self.tutor_idx.is_none()
+    }
 }
 
 #[test]
@@ -249,6 +253,7 @@ fn exercise_api() {
     ];
     let mut game: BlauAPI =
         GameAPI::init(&players, Some(r#"{"tutor_mode": true}"#)).unwrap();
+    assert!(!game.should_persist());
 
     let mut num_notices = 0;
     game.start(1234, |id, msg| {
