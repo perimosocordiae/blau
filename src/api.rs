@@ -1,4 +1,4 @@
-use blau_api::{GameAPI, PlayerInfo, Result};
+use blau_api::{DynSafeGameAPI, GameAPI, PlayerInfo, Result};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -185,22 +185,6 @@ impl GameAPI for BlauAPI {
             tutor_idx: None, // Tutor games are not stored.
         })
     }
-
-    fn is_game_over(&self) -> bool {
-        self.game_over
-    }
-
-    fn final_state(&self) -> Result<String> {
-        if !self.game_over {
-            return Err("Game is not finished".into());
-        }
-        Ok(serde_json::to_string(&self.state)?)
-    }
-
-    fn player_view(&self, _player_id: &str) -> Result<String> {
-        Ok(serde_json::to_string(&self.state)?)
-    }
-
     fn start<F: FnMut(&str, &str)>(
         &mut self,
         game_id: i64,
@@ -230,6 +214,23 @@ impl GameAPI for BlauAPI {
         // Advance to wait for the next player action.
         self.process_agents(&mut notice_cb)?;
         Ok(())
+    }
+}
+
+impl DynSafeGameAPI for BlauAPI {
+    fn is_game_over(&self) -> bool {
+        self.game_over
+    }
+
+    fn final_state(&self) -> Result<String> {
+        if !self.game_over {
+            return Err("Game is not finished".into());
+        }
+        Ok(serde_json::to_string(&self.state)?)
+    }
+
+    fn player_view(&self, _player_id: &str) -> Result<String> {
+        Ok(serde_json::to_string(&self.state)?)
     }
 
     fn current_player_id(&self) -> &str {
