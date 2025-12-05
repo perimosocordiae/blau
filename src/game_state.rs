@@ -2,6 +2,8 @@ use crate::colors::Color;
 use crate::player_move::Move;
 use crate::player_state::PlayerState;
 use rand::seq::SliceRandom;
+use rand::{Rng, SeedableRng};
+use rand_chacha::ChaCha8Rng;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -19,6 +21,7 @@ pub struct GameState {
     start_player_idx: usize,
     pub curr_player_idx: usize,
     round_number: usize,
+    rng: ChaCha8Rng,
 }
 
 fn as_vec_len<S>(vec: &Vec<Color>, serializer: S) -> Result<S::Ok, S::Error>
@@ -38,9 +41,13 @@ const ALL_COLORS: [Color; 5] = [
 
 impl GameState {
     pub fn new(player_names: &[&str], rng: &mut impl rand::Rng) -> GameState {
+        // Initialize the internal RNG.
+        let seed: [u8; 32] = rng.random();
+        let mut my_rng = ChaCha8Rng::from_seed(seed);
+
         let mut tile_bag: Vec<Color> =
             (0..20).flat_map(|_x| ALL_COLORS.iter()).cloned().collect();
-        tile_bag.shuffle(rng);
+        tile_bag.shuffle(&mut my_rng);
         let players: Vec<PlayerState> =
             player_names.iter().map(|&p| PlayerState::new(p)).collect();
         let mut center = HashMap::new();
@@ -52,9 +59,10 @@ impl GameState {
             factories: vec![vec![]; num_factories],
             center,
             players,
-            start_player_idx: rng.random_range(0..player_names.len()),
+            start_player_idx: my_rng.random_range(0..player_names.len()),
             curr_player_idx: 0,
             round_number: 0,
+            rng: my_rng,
         }
     }
 
@@ -174,9 +182,7 @@ impl GameState {
         // Prep the tile bag for the next round, if necessary.
         if self.tile_bag.len() < 4 * self.factories.len() {
             self.tile_bag.append(&mut self.box_lid);
-            // TODO: store the RNG from initialization and reuse it here.
-            let mut rng = rand::rng();
-            self.tile_bag.shuffle(&mut rng);
+            self.tile_bag.shuffle(&mut self.rng);
         }
         Ok(false)
     }
