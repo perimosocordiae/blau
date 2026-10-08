@@ -6,14 +6,14 @@ type PlayGrid = [[bool; 5]; 5];
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlayerState {
     pub display_name: String,
-    played_tiles: PlayGrid,
-    working_count: [usize; 5],
-    working_color: [Color; 5],
-    trashed_tiles: Vec<Color>,
+    pub played_tiles: PlayGrid,
+    pub working_count: [usize; 5],
+    pub working_color: [Color; 5],
+    pub trashed_tiles: Vec<Color>,
     scores: Vec<i32>,
 }
 
-static PENALTIES: [i32; 7] = [-1, -1, -2, -2, -2, -3, -3];
+pub static PENALTIES: [i32; 7] = [-1, -1, -2, -2, -2, -3, -3];
 static ROW_BONUS: i32 = 2;
 static COL_BONUS: i32 = 7;
 static KIND_BONUS: i32 = 10;
@@ -26,7 +26,7 @@ fn played_color(row: usize, column: usize) -> usize {
     (column + 5 - row) % 5
 }
 
-fn score_tile(grid: &PlayGrid, row: usize, col: usize) -> i32 {
+pub fn score_tile(grid: &PlayGrid, row: usize, col: usize) -> i32 {
     let line = grid[row];
     let horiz = 1
         + line[(col + 1)..].iter().take_while(|&x| *x).count()
@@ -56,6 +56,46 @@ fn scoring_a_tile() {
     grid[3][3] = true;
     assert_eq!(score_tile(&grid, 3, 3), 3);
     assert_eq!(score_tile(&grid, 2, 3), 6);
+}
+
+fn full_rows(grid: &PlayGrid) -> i32 {
+    grid.iter()
+        .map(|row| row.iter().all(|p| *p) as i32)
+        .sum::<i32>()
+}
+
+fn full_cols(grid: &PlayGrid) -> i32 {
+    let mut count = 0;
+    for col in 0..5 {
+        if (0..5).all(|i| grid[i][col]) {
+            count += 1;
+        }
+    }
+    count
+}
+
+fn full_kinds(grid: &PlayGrid) -> i32 {
+    let mut bincount = [0usize; 5];
+    for (i, row) in grid.iter().enumerate() {
+        for (j, is_played) in row.iter().enumerate() {
+            if *is_played {
+                bincount[played_color(i, j)] += 1;
+            }
+        }
+    }
+    bincount.iter().filter(|&c| *c == 5).count() as i32
+}
+
+pub fn row_bonus(grid: &PlayGrid) -> i32 {
+    full_rows(grid) * ROW_BONUS
+}
+
+pub fn col_bonus(grid: &PlayGrid) -> i32 {
+    full_cols(grid) * COL_BONUS
+}
+
+pub fn kind_bonus(grid: &PlayGrid) -> i32 {
+    full_kinds(grid) * KIND_BONUS
 }
 
 impl PlayerState {
@@ -182,38 +222,13 @@ impl PlayerState {
     }
 
     pub fn num_full_rows(&self) -> i32 {
-        self.played_tiles
-            .iter()
-            .map(|row| row.iter().all(|p| *p) as i32)
-            .sum()
-    }
-
-    fn num_full_columns(&self) -> i32 {
-        let mut count = 0;
-        for col in 0..5 {
-            if (0..5).all(|i| self.played_tiles[i][col]) {
-                count += 1;
-            }
-        }
-        count
-    }
-
-    fn num_full_colors(&self) -> i32 {
-        let mut bincount = [0usize; 5];
-        for (i, row) in self.played_tiles.iter().enumerate() {
-            for (j, is_played) in row.iter().enumerate() {
-                if *is_played {
-                    bincount[played_color(i, j)] += 1;
-                }
-            }
-        }
-        bincount.iter().filter(|&c| *c == 5).count() as i32
+        full_rows(&self.played_tiles)
     }
 
     pub fn score_bonuses(&mut self) {
-        self.scores.push(ROW_BONUS * self.num_full_rows());
-        self.scores.push(COL_BONUS * self.num_full_columns());
-        self.scores.push(KIND_BONUS * self.num_full_colors());
+        self.scores.push(row_bonus(&self.played_tiles));
+        self.scores.push(col_bonus(&self.played_tiles));
+        self.scores.push(kind_bonus(&self.played_tiles));
     }
 
     pub fn valid_moves(&self, c: Color) -> Vec<usize> {
@@ -238,12 +253,12 @@ fn scoring_kind_bonuses() {
         p.played_tiles[j][j] = true;
     }
     p.played_tiles[0][1] = true;
-    assert_eq!(p.num_full_colors(), 1);
+    assert_eq!(full_kinds(&p.played_tiles), 1);
     p.score_bonuses();
     assert_eq!(p.scores, vec![0, 0, KIND_BONUS]);
 
     p.played_tiles[0][0] = false;
-    assert_eq!(p.num_full_colors(), 0);
+    assert_eq!(full_kinds(&p.played_tiles), 0);
 }
 
 #[test]
@@ -253,7 +268,7 @@ fn scoring_column_bonuses() {
         p.played_tiles[j][3] = true;
     }
     p.played_tiles[0][0] = true;
-    assert_eq!(p.num_full_columns(), 1);
+    assert_eq!(full_cols(&p.played_tiles), 1);
     p.score_bonuses();
     assert_eq!(p.scores, vec![0, COL_BONUS, 0]);
 }
@@ -269,7 +284,7 @@ fn scoring_row_bonuses() {
         p.played_tiles[1][j] = true;
     }
     p.played_tiles[0][0] = true;
-    assert_eq!(p.num_full_rows(), 1);
+    assert_eq!(full_rows(&p.played_tiles), 1);
     p.score_bonuses();
     assert_eq!(p.scores, vec![ROW_BONUS, 0, 0]);
 }

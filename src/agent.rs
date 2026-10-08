@@ -70,13 +70,14 @@ impl GreedyAgent {
 
     fn score_move(&self, game: &GameState, m: &Move) -> (i32, i32) {
         let mut bias: i32 = 0;
-        let mut player = game.current_player().clone();
+        let player = game.current_player();
+        let mut num_trashed = player.trashed_tiles.len();
 
         if m.is_from_center() {
             bias += self.center_bias;
             if game.is_start_token_available() {
                 bias += self.first_player_bias;
-                player.send_to_trash(m.color, 1);
+                num_trashed += 1;
             }
         }
         if player.is_new_working_row(m.working_row) {
@@ -87,10 +88,41 @@ impl GreedyAgent {
         bias += self.num_tiles_bias * num_tiles as i32;
         let column = played_column(m.working_row, m.color);
         bias += self.middle_bias * (2 - column as i32);
-        player
-            .add_tiles(m.working_row, m.color, num_tiles)
-            .expect("Cannot add tiles");
-        let score = player_score(&mut player);
+
+        // Simulate adding the tiles to the working row.
+        let mut grid = player.played_tiles;
+        let mut working_count = player.working_count;
+        let mut working_color = player.working_color;
+        if m.working_row == 5 {
+            num_trashed += num_tiles;
+        } else {
+            working_color[m.working_row] = m.color;
+            let limit = m.working_row + 1;
+            if working_count[m.working_row] + num_tiles > limit {
+                num_trashed += working_count[m.working_row] + num_tiles - limit;
+                working_count[m.working_row] = limit;
+            } else {
+                working_count[m.working_row] += num_tiles;
+            }
+        }
+
+        let mut round_score = 0;
+        for row in 0..5 {
+            if working_count[row] > row {
+                let col = played_column(row, working_color[row]);
+                grid[row][col] = true;
+                round_score += crate::player_state::score_tile(&grid, row, col);
+            }
+        }
+        round_score += crate::player_state::PENALTIES
+            .iter()
+            .take(num_trashed)
+            .sum::<i32>();
+        let prev_score = player.score();
+        let score = (prev_score + round_score).max(0)
+            + crate::player_state::col_bonus(&grid)
+            + crate::player_state::row_bonus(&grid)
+            + crate::player_state::kind_bonus(&grid);
         (score, bias)
     }
 }
