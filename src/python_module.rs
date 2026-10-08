@@ -1,9 +1,9 @@
 #![allow(clippy::all)]
-use crate::agent::{create_agent, Agent};
+use crate::agent::{Agent, create_agent};
 use crate::game_state;
 use crate::player_move;
 use cpython::exc::ValueError;
-use cpython::{py_class, py_module_initializer, PyErr, PyResult};
+use cpython::{PyErr, PyResult, py_class, py_module_initializer};
 use std::cell::RefCell;
 use std::convert::TryInto;
 
