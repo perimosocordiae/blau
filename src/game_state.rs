@@ -24,7 +24,7 @@ pub struct GameState {
     rng: ChaCha8Rng,
 }
 
-fn as_vec_len<S>(vec: &Vec<Color>, serializer: S) -> Result<S::Ok, S::Error>
+fn as_vec_len<S>(vec: &[Color], serializer: S) -> Result<S::Ok, S::Error>
 where
     S: serde::Serializer,
 {
