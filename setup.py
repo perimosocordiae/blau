@@ -9,7 +9,7 @@ setup(
     zip_safe=False,
     rust_extensions=[
         RustExtension(
-            "blau.blau", debug=False, binding=Binding.RustCPython, features=["cpython"]
+            "blau.blau", debug=False, binding=Binding.PyO3, features=["pyo3"]
         ),
     ],
     package_data=dict(blau=["blau.pyi"]),

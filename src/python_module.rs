@@ -2,93 +2,176 @@
 use crate::agent::{Agent, create_agent};
 use crate::game_state;
 use crate::player_move;
-use cpython::exc::ValueError;
-use cpython::{PyErr, PyResult, py_class, py_module_initializer};
-use std::cell::RefCell;
+use pyo3::exceptions::{PyRuntimeError, PyValueError};
+use pyo3::prelude::*;
 use std::convert::TryInto;
+use std::sync::Mutex;
 
-py_class!(class BlauState |py| {
-    data gs: RefCell<game_state::GameState>;
-    def __new__(_cls, names: Vec<String>) -> PyResult<BlauState> {
+#[pyclass]
+struct BlauState {
+    gs: Mutex<game_state::GameState>,
+}
+
+#[pymethods]
+impl BlauState {
+    #[new]
+    fn new(names: Vec<String>) -> Self {
         let name_refs: Vec<&str> = names.iter().map(String::as_str).collect();
         let mut rng = rand::rng();
         let wrapped = game_state::GameState::new(&name_refs, &mut rng);
-        BlauState::create_instance(py, RefCell::new(wrapped))
+        Self {
+            gs: Mutex::new(wrapped),
+        }
     }
-    def start_round(&self) -> PyResult<Option<i32>> {
-        self.gs(py).borrow_mut().start_round();
-        Ok(None)
+
+    fn start_round(&self) -> PyResult<()> {
+        self.gs
+            .lock()
+            .map_err(|_| PyRuntimeError::new_err("game state lock poisoned"))?
+            .start_round();
+        Ok(())
     }
-    def do_move(&self, m: &BlauMove) -> PyResult<bool> {
-        self.gs(py).borrow_mut()
-            .take_turn(&m.pm(py))
-            .map_err(|msg| PyErr::new::<ValueError, _>(py, msg))
+
+    fn do_move(&self, m: PyRef<'_, BlauMove>) -> PyResult<bool> {
+        self.gs
+            .lock()
+            .map_err(|_| PyRuntimeError::new_err("game state lock poisoned"))?
+            .take_turn(&m.pm)
+            .map_err(PyValueError::new_err)
     }
-    def finish_round(&self) -> PyResult<bool> {
-        self.gs(py).borrow_mut()
+
+    fn finish_round(&self) -> PyResult<bool> {
+        self.gs
+            .lock()
+            .map_err(|_| PyRuntimeError::new_err("game state lock poisoned"))?
             .finish_round()
-            .map_err(|msg| PyErr::new::<ValueError, _>(py, msg))
+            .map_err(PyValueError::new_err)
     }
-    def __str__(&self) -> PyResult<String> {
-        Ok(format!("{:?}", self.gs(py).borrow()))
-    }
-    def to_json(&self) -> PyResult<String> {
-        serde_json::to_string(self.gs(py))
-                .map_err(|e| PyErr::new::<ValueError, _>(py, e.to_string()))
-    }
-    @property def curr_player_idx(&self) -> PyResult<usize> {
-        Ok(self.gs(py).borrow().curr_player_idx)
-    }
-    def players(&self) -> PyResult<Vec<(String, i32)>> {
-        Ok(self.gs(py).borrow().players.iter()
-               .map(|p| (p.display_name.clone(), p.score()))
-               .collect())
-    }
-    def is_finished(&self) ->PyResult<bool> {
-        Ok(self.gs(py).borrow().is_finished())
-    }
-});
 
-py_class!(class BlauMove |py| {
-    data pm: player_move::Move;
-    def __new__(_cls, factory_idx: usize,
-                cidx: usize, working_row: usize) -> PyResult<BlauMove> {
-        let color = cidx.try_into().map_err(
-            |_| PyErr::new::<ValueError, _>(py, "Invalid color")
-        )?;
-        let wrapped = player_move::Move { factory_idx, color, working_row };
-        BlauMove::create_instance(py, wrapped)
+    fn __str__(&self) -> PyResult<String> {
+        Ok(format!(
+            "{:?}",
+            self.gs.lock().map_err(|_| PyRuntimeError::new_err(
+                "game state lock poisoned"
+            ))?
+        ))
     }
-    @property def factory_idx(&self) -> PyResult<usize> {
-        Ok(self.pm(py).factory_idx)
-    }
-    @property def color(&self) -> PyResult<usize> {
-        Ok(self.pm(py).color as usize)
-    }
-    @property def working_row(&self) -> PyResult<usize> {
-        Ok(self.pm(py).working_row)
-    }
-    def __str__(&self) -> PyResult<String> {
-        Ok(format!("{:?}", self.pm(py)))
-    }
-});
 
-py_class!(class BlauAgent |py| {
-    data ga: Box<dyn Agent + Send>;
-    def __new__(_cls, difficulty: usize) -> PyResult<BlauAgent> {
-        BlauAgent::create_instance(py, create_agent(difficulty))
+    fn to_json(&self) -> PyResult<String> {
+        serde_json::to_string(
+            &*self.gs.lock().map_err(|_| {
+                PyRuntimeError::new_err("game state lock poisoned")
+            })?,
+        )
+        .map_err(|e| PyValueError::new_err(e.to_string()))
     }
-    def choose_action(&self, game: BlauState) -> PyResult<BlauMove> {
-        let m = self.ga(py).choose_action(&game.gs(py).borrow());
-        BlauMove::create_instance(py, m)
-    }
-});
 
-// add bindings to the generated python module
-py_module_initializer!(blau, |py, m| {
-    m.add(py, "__doc__", "Blau's core game logic.")?;
-    m.add(py, "BlauMove", py.get_type::<BlauMove>())?;
-    m.add(py, "BlauState", py.get_type::<BlauState>())?;
-    m.add(py, "BlauAgent", py.get_type::<BlauAgent>())?;
+    #[getter]
+    fn curr_player_idx(&self) -> PyResult<usize> {
+        Ok(self
+            .gs
+            .lock()
+            .map_err(|_| PyRuntimeError::new_err("game state lock poisoned"))?
+            .curr_player_idx)
+    }
+
+    fn players(&self) -> PyResult<Vec<(String, i32)>> {
+        Ok(self
+            .gs
+            .lock()
+            .map_err(|_| PyRuntimeError::new_err("game state lock poisoned"))?
+            .players
+            .iter()
+            .map(|p| (p.display_name.clone(), p.score()))
+            .collect())
+    }
+
+    fn is_finished(&self) -> PyResult<bool> {
+        Ok(self
+            .gs
+            .lock()
+            .map_err(|_| PyRuntimeError::new_err("game state lock poisoned"))?
+            .is_finished())
+    }
+}
+
+#[pyclass]
+struct BlauMove {
+    pm: player_move::Move,
+}
+
+#[pymethods]
+impl BlauMove {
+    #[new]
+    fn new(
+        factory_idx: usize,
+        cidx: usize,
+        working_row: usize,
+    ) -> PyResult<Self> {
+        let color = cidx
+            .try_into()
+            .map_err(|_| PyValueError::new_err("Invalid color"))?;
+        let wrapped = player_move::Move {
+            factory_idx,
+            color,
+            working_row,
+        };
+        Ok(Self { pm: wrapped })
+    }
+
+    #[getter]
+    fn factory_idx(&self) -> usize {
+        self.pm.factory_idx
+    }
+
+    #[getter]
+    fn color(&self) -> usize {
+        self.pm.color as usize
+    }
+
+    #[getter]
+    fn working_row(&self) -> usize {
+        self.pm.working_row
+    }
+
+    fn __str__(&self) -> String {
+        format!("{:?}", self.pm)
+    }
+}
+
+#[pyclass]
+struct BlauAgent {
+    ga: Mutex<Box<dyn Agent + Send>>,
+}
+
+#[pymethods]
+impl BlauAgent {
+    #[new]
+    fn new(difficulty: usize) -> Self {
+        Self {
+            ga: Mutex::new(create_agent(difficulty)),
+        }
+    }
+
+    fn choose_action(&self, game: PyRef<'_, BlauState>) -> PyResult<BlauMove> {
+        let game = game
+            .gs
+            .lock()
+            .map_err(|_| PyRuntimeError::new_err("game state lock poisoned"))?;
+        let m = self
+            .ga
+            .lock()
+            .map_err(|_| PyRuntimeError::new_err("agent lock poisoned"))?
+            .choose_action(&game);
+        Ok(BlauMove { pm: m })
+    }
+}
+
+#[pymodule]
+fn blau(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add("__doc__", "Blau's core game logic.")?;
+    m.add_class::<BlauMove>()?;
+    m.add_class::<BlauState>()?;
+    m.add_class::<BlauAgent>()?;
     Ok(())
-});
+}
