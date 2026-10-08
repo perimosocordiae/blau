@@ -1,5 +1,3 @@
-from typing import List, Tuple
-
 
 class BlauMove:
     factory_idx: int
@@ -13,7 +11,7 @@ class BlauMove:
 class BlauState:
     curr_player_idx: int = ...
 
-    def __init__(self, names: List[str]):
+    def __init__(self, names: list[str]):
         ...
 
     def do_move(self, m: BlauMove) -> bool:
@@ -28,7 +26,7 @@ class BlauState:
     def to_json(self) -> str:
         ...
 
-    def players(self) -> List[Tuple[str, int]]:
+    def players(self) -> list[tuple[str, int]]:
         ...
 
     def is_finished(self) -> bool:
