@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 from argparse import ArgumentParser
-from typing import List, Dict, Sequence
+from collections.abc import Sequence
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import scipy.stats as st
 
-from blau import BlauState, BlauAgent
+from blau import BlauAgent, BlauState
 
 
 def main():
@@ -27,7 +28,7 @@ def main():
     print("Per game scoring")
     print(scores.describe())
     if args.plot:
-        fig, axes = plt.subplots(ncols=3, figsize=(15, 5))
+        _, axes = plt.subplots(ncols=3, figsize=(15, 5))
         axes[0].violinplot(scores, showextrema=False, widths=0.8)
         scores.plot(kind="box", ax=axes[0], xlabel="AI Player", ylabel="Score")
         axes[0].set_xlabel("AI Player")
@@ -67,7 +68,7 @@ def main():
                 mode="approx",
             ).pvalue
             for name in agent_names[1:]
-        ]
+        ], dtype=float
     )
     print("\np-Values:", p_values)
     if (p_values < 0.05).all():
@@ -102,9 +103,9 @@ def main():
 
 
 def play_games(
-    agents: List[BlauAgent], agent_names: List[str], num_games: int
+    agents: list[BlauAgent], agent_names: list[str], num_games: int
 ) -> pd.DataFrame:
-    agent_scores = {n: [] for n in agent_names}  # type: Dict[str, List[int]]
+    agent_scores: dict[str, list[int]] = {n: [] for n in agent_names}
     for _ in range(num_games):
         game = BlauState(agent_names)
         while True:
@@ -121,14 +122,14 @@ def play_games(
     return pd.DataFrame(agent_scores)
 
 
-def _elo_change(rating_loser: float, rating_winner: float, k: float):
+def _elo_change(rating_loser: float, rating_winner: float, k: float) -> float:
     gap = rating_winner - rating_loser
     return k / (1 + 10 ** (gap / 400))
 
 
 def update_elos(
     current_elos: Sequence[float], ranking: Sequence[int], elo_k: float
-) -> Sequence[float]:
+) -> list[float]:
     num_players = len(current_elos)
     elo_change = [0.0] * num_players
     for j in range(1, num_players):
